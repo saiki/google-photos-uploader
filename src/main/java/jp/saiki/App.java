@@ -41,6 +41,7 @@ public class App {
             "https://www.googleapis.com/auth/photoslibrary.readonly",
             "https://www.googleapis.com/auth/photoslibrary.appendonly");
 
+    private static final int BATCH_CREATION_LIMIT = 50;
 
     private static final java.io.File DATA_STORE_DIR =
         new java.io.File(System.getProperty("user.home"), ".store/google_photos_uploader");
@@ -62,7 +63,13 @@ public class App {
                     }
                     return null;
                 }).collect(Collectors.toList());
-                createMediaItem(client, uploadTokens);
+                List<MediaItem> created = createMediaItem(client, uploadTokens);
+                System.out.println(created);
+                for (MediaItem item : created) {
+                  System.out.println(item);
+                  System.out.println(item.getFilename());
+                  System.out.println(item.getProductUrl());
+                }
             } catch (IOException | GeneralSecurityException e) {
                 e.printStackTrace();
             }
@@ -93,10 +100,10 @@ public class App {
 
     public static List<MediaItem> createMediaItem(PhotosLibraryClient client, List<String> uploadTokens) {
         List<NewMediaItem> newItems = uploadTokens.stream().map(token -> NewMediaItemFactory.createNewMediaItem(token)).collect(Collectors.toList());
-        List<List<NewMediaItem>> partitionNewItems = Lists.partition(newItems, 50);
+        List<List<NewMediaItem>> partitionNewItems = Lists.partition(newItems, BATCH_CREATION_LIMIT);
         List<MediaItem> result = new ArrayList<>(newItems.size());
         for (List<NewMediaItem> items : partitionNewItems) {
-          BatchCreateMediaItemsResponse response = client.batchCreateMediaItems(newItems);
+          BatchCreateMediaItemsResponse response = client.batchCreateMediaItems(items);
           for (NewMediaItemResult itemsResponse : response.getNewMediaItemResultsList()) {
               Status status = itemsResponse.getStatus();
               if (status.getCode() == Code.OK_VALUE) {

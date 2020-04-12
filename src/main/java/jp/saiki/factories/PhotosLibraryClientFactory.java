@@ -37,9 +37,6 @@ public class PhotosLibraryClientFactory {
       HttpTransport httpTransport, FileDataStoreFactory dataStoreFactory) throws IOException, GeneralSecurityException {
 
     Credential credential = authorize(clientSecretJson, selectedScopes, httpTransport, dataStoreFactory);
-    System.out.println(credential);
-    System.out.println(credential.getAccessToken());
-    System.out.println(credential.getExpirationTimeMilliseconds());
     AccessToken accessToken = new AccessToken(credential.getAccessToken(), new Date(credential.getExpirationTimeMilliseconds()));
     Credentials credentials = GoogleCredentials.newBuilder().setAccessToken(accessToken).build();
     PhotosLibrarySettings settings = PhotosLibrarySettings.newBuilder()
