@@ -16,6 +16,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.gax.rpc.ApiException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.photos.library.v1.PhotosLibraryClient;
 import com.google.photos.library.v1.proto.BatchCreateMediaItemsResponse;
 import com.google.photos.library.v1.proto.NewMediaItem;
@@ -92,17 +93,19 @@ public class App {
 
     public static List<MediaItem> createMediaItem(PhotosLibraryClient client, List<String> uploadTokens) {
         List<NewMediaItem> newItems = uploadTokens.stream().map(token -> NewMediaItemFactory.createNewMediaItem(token)).collect(Collectors.toList());
-
+        List<List<NewMediaItem>> partitionNewItems = Lists.partition(newItems, 50);
         List<MediaItem> result = new ArrayList<>(newItems.size());
-        BatchCreateMediaItemsResponse response = client.batchCreateMediaItems(newItems);
-        for (NewMediaItemResult itemsResponse : response.getNewMediaItemResultsList()) {
-            Status status = itemsResponse.getStatus();
-            if (status.getCode() == Code.OK_VALUE) {
-                // The item is successfully created in the user's library
-                result.add(itemsResponse.getMediaItem());
-            } else {
-            // The item could not be created. Check the status and try again
-            }
+        for (List<NewMediaItem> items : partitionNewItems) {
+          BatchCreateMediaItemsResponse response = client.batchCreateMediaItems(newItems);
+          for (NewMediaItemResult itemsResponse : response.getNewMediaItemResultsList()) {
+              Status status = itemsResponse.getStatus();
+              if (status.getCode() == Code.OK_VALUE) {
+                  // The item is successfully created in the user's library
+                  result.add(itemsResponse.getMediaItem());
+              } else {
+              // The item could not be created. Check the status and try again
+              }
+          }
         }
         return result;
     }
