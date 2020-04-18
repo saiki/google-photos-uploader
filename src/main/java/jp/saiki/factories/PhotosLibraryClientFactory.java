@@ -33,10 +33,14 @@ public class PhotosLibraryClientFactory {
   private PhotosLibraryClientFactory() {
   }
 
-  public static PhotosLibraryClient createClient(Path clientSecretJson, List<String> selectedScopes,
+  public static PhotosLibraryClient createClient(String user, Path clientSecretJson, List<String> selectedScopes,
       HttpTransport httpTransport, FileDataStoreFactory dataStoreFactory) throws IOException, GeneralSecurityException {
 
-    Credential credential = authorize(clientSecretJson, selectedScopes, httpTransport, dataStoreFactory);
+    Credential credential = authorize(clientSecretJson, selectedScopes, httpTransport, dataStoreFactory, user);
+    if (credential.getExpiresInSeconds() < (new Date()).getTime()) {
+      credential.refreshToken();
+    }
+    System.out.println("AccessToken: "+credential.getAccessToken());
     AccessToken accessToken = new AccessToken(credential.getAccessToken(), new Date(credential.getExpirationTimeMilliseconds()));
     Credentials credentials = GoogleCredentials.newBuilder().setAccessToken(accessToken).build();
     PhotosLibrarySettings settings = PhotosLibrarySettings.newBuilder()
@@ -45,13 +49,13 @@ public class PhotosLibraryClientFactory {
   }
 
   private static Credential authorize(Path credential, List<String> selectedScopes, HttpTransport httpTransport,
-      FileDataStoreFactory dataStoreFactory) throws IOException, GeneralSecurityException {
+      FileDataStoreFactory dataStoreFactory, String user) throws IOException, GeneralSecurityException {
     GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY,
         new InputStreamReader(new FileInputStream(credential.toFile())));
     // set up authorization code flow
     GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(httpTransport, JSON_FACTORY,
         clientSecrets, selectedScopes).setDataStoreFactory(dataStoreFactory).build();
     // authorize
-    return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("user");
+    return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize(user);
   }
 }

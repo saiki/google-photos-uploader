@@ -46,15 +46,19 @@ public class App {
     private static final java.io.File DATA_STORE_DIR =
         new java.io.File(System.getProperty("user.home"), ".store/google_photos_uploader");
 
-    public static void main(final String[] args) {
+    public static void main(final String... args) {
         var credential = Paths.get(System.getProperty("credential"));
-        var root = Paths.get(System.getProperty("root"));
         var recursive = Boolean.getBoolean("recursive");
         var depth = recursive ? Integer.MAX_VALUE : 1;
+        if (args.length < 2) {
+          throw new IllegalArgumentException();
+        }
+        var user = args[0];
+        var root = Paths.get(args[1]);
         try {
             HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
             FileDataStoreFactory dataStoreFactory = new FileDataStoreFactory(DATA_STORE_DIR);
-            try (PhotosLibraryClient client = PhotosLibraryClientFactory.createClient(credential, REQUIRED_SCOPES, httpTransport, dataStoreFactory)) {
+            try (PhotosLibraryClient client = PhotosLibraryClientFactory.createClient(user, credential, REQUIRED_SCOPES, httpTransport, dataStoreFactory)) {
                 List<String> uploadTokens = Files.walk(root, depth).filter( path -> Files.isRegularFile(path) ).map( f -> {
                     try {
                         return upload(client, f);
